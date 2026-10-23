@@ -1,6 +1,6 @@
 # Nexo · Administrador de proveedores
 
-**Autor:** Diego Alejandro Zelada Martinez
+**Autor:** Diego Zelada 
 
 Desarrollé esta aplicación para administrar proveedores desde una página web. Permite registrar sus datos, buscarlos, editarlos y cambiar su estado entre activo e inactivo. La información se conserva al recargar la página porque se guarda en el navegador mediante `localStorage`.
 
