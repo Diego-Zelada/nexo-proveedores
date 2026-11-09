@@ -1,42 +1,70 @@
-# Nexo · Administrador de proveedores
+# Nexo · Proveedores y documentos en Azure
 
-**Autor:** Diego Zelada 
+**Autor: Diego Zelada · Segunda etapa**
 
-Desarrollé esta aplicación para administrar proveedores desde una página web. Permite registrar sus datos, buscarlos, editarlos y cambiar su estado entre activo e inactivo. La información se conserva al recargar la página porque se guarda en el navegador mediante `localStorage`.
+Amplié mi administrador de proveedores para gestionar sus documentos. Conservé la aplicación de React y agregué una API REST en Node.js y TypeScript, almacenamiento privado en Azure Blob Storage y una Azure Function que valida cada carga.
 
-## Enlaces del proyecto
+Para comenzar en Windows, sigo primero [EMPEZAR_AQUI.md](EMPEZAR_AQUI.md). La configuración de Azure está en [la guía de despliegue](docs/AZURE_PASO_A_PASO.md).
 
-- **Aplicación publicada:** [Nexo Proveedores en Azure](https://kind-mud-024de6410.6.azurestaticapps.net)
-- **Código fuente:** [Repositorio en GitHub](https://github.com/Diego-Zelada/nexo-proveedores)
-- **Alojamiento:** Azure Static Web Apps, plan Free.
-- **Fecha de verificación:** 23 de octubre de 2026.
+Para crear los servicios por separado y usar una API F1 existente, sigo [SERVICIOS_SEPARADOS.md](docs/SERVICIOS_SEPARADOS.md). Esa ruta usa Functions Flex con Event Grid, sin elegir B1. Su publicación real todavía debe comprobarse.
 
-## Tecnologías utilizadas
+## Estado y enlaces
 
-Utilicé React para construir la interfaz, TypeScript para definir los tipos de datos, Tailwind CSS para los estilos y componentes de shadcn/ui sobre Radix para los formularios, menús y ventanas de confirmación. También utilicé Vite para ejecutar y compilar el proyecto, Vitest para las pruebas y GitHub Actions para verificar el código y publicarlo en Azure.
+- Repositorio: [Diego-Zelada/nexo-proveedores](https://github.com/Diego-Zelada/nexo-proveedores).
+- Dirección de la primera etapa: [Nexo en Static Web Apps](https://kind-mud-024de6410.6.azurestaticapps.net).
+- Dirección de la segunda etapa: la devuelve el despliegue como `apiUrl`, con dominio `azurewebsites.net`. Se agrega aquí cuando se configure y pruebe en la cuenta de Azure.
+- El código incluye infraestructura y publicación automática. Las capturas, la prueba de recuperación y la demostración en Azure se completan después del despliegue real. El enlace de la primera etapa no demuestra que la segunda ya esté publicada.
 
-## Funciones de la aplicación
+## Funciones
 
-- Registrar y editar nombre, razón social, NIT, NRC, teléfono, correo, dirección y estado.
-- Buscar proveedores por nombre, NIT o correo.
-- Filtrar todos los proveedores, solamente los activos o solamente los inactivos.
-- Mostrar las cantidades de proveedores totales, activos e inactivos.
-- Validar el nombre y el NIT como obligatorios y el formato del correo si se completa.
-- Evitar registros con un NIT que ya esté guardado.
-- Activar e inactivar proveedores con confirmación, conservando sus datos.
-- Mostrar una tabla en computadora y tarjetas en pantallas pequeñas.
-- Guardar los cambios en el navegador y mostrar mensajes de confirmación o error.
+El directorio conserva el registro, edición, búsqueda, filtros, activación e inactivación de proveedores. Incluye los ocho ejemplos ficticios originales.
+
+En **Documentos**, o en **⋯ → Ver documentos** de un proveedor, puedo:
+
+- Iniciar sesión para gestionar mis documentos.
+- Subir PDF, JPG/JPEG y PNG de hasta 10 MB por archivo.
+- Asociarlos a un proveedor y clasificarlos como contrato, identificación, constancia fiscal u otro.
+- Buscar por nombre o proveedor y filtrar por proveedor y tipo.
+- Consultar nombre, tamaño, fecha y estado de procesamiento.
+- Visualizar y descargar archivos validados mediante enlaces temporales de solo lectura.
+- Cargar una nueva versión del mismo documento y consultar su historial en Azure.
+- Eliminar documentos y solicitar su recuperación desde la papelera mientras Azure conserve versiones recuperables.
+
+## Arquitectura
+
+![Arquitectura de Nexo](docs/arquitectura.svg)
+
+1. El navegador inicia sesión y envía el archivo a la API por HTTPS.
+2. La API verifica la autorización y el archivo, crea su registro y lo carga en el contenedor privado `proveedores-documentos`.
+3. El disparador Blob de Azure Functions detecta la carga, comprueba nuevamente tipo y tamaño, registra el resultado y actualiza el estado en Azure Table Storage.
+4. La interfaz consulta el estado cada cinco segundos. El archivo solo se puede abrir cuando está `disponible`.
+5. Para visualizar o descargar, la API genera un SAS de delegación de usuario, de solo lectura, para la versión validada y con 60 segundos de vigencia.
+
+La API y el frontend se publican juntos en **Azure App Service**. La Function se publica como un recurso separado. GitHub Actions usa una identidad federada OIDC para publicar ambos.
+
+### Dónde se guarda cada dato
+
+| Dato                                                                       | Ubicación                                               |
+| -------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Directorio de proveedores                                                  | `localStorage` del navegador, como en la primera etapa. |
+| Archivos                                                                   | Contenedor privado de Azure Blob Storage.               |
+| Asociación, tipo, nombre, tamaño y estado                                  | Tabla `DocumentosProveedores`.                          |
+| Resultado de cargas, validaciones, enlaces, eliminaciones y recuperaciones | Tabla `EventosDocumentos` y registros del servidor.     |
+| Token de sesión                                                            | Memoria del navegador; se pierde al recargar.           |
+| Hashes de contraseñas y clave de firma                                     | `.env` local o configuración privada de App Service.    |
+
+Los archivos se organizan como `usuario/proveedor/documento/archivo`; los identificadores son internos. Cada usuario ve únicamente su partición de documentos.
+
+Los proveedores siguen siendo locales: no se sincronizan entre navegadores o direcciones web. Los documentos conservan el identificador y nombre del proveedor usados al subirlos. Aunque ese proveedor no exista en otro navegador, sus documentos siguen apareciendo en la consulta general del usuario. La API no es una base de datos central de proveedores.
 
 ## 1. Requisitos
 
-Para ejecutar el proyecto en una computadora se necesita:
+- Node.js **22.12 o superior** y npm. Node 24 también sirve para trabajar localmente.
+- Visual Studio Code; también puedo abrir la carpeta en Visual Studio y usar su terminal. No requiere un archivo `.sln`.
+- Git para trabajar con el repositorio.
+- Para la publicación: una suscripción de Azure, permisos para crear recursos y asignar roles, y Azure CLI.
 
-- [Node.js](https://nodejs.org/) versión **22.12 o superior**, que incluye npm.
-- [Git](https://git-scm.com/) para descargar el repositorio y subir cambios.
-- [Visual Studio Code](https://code.visualstudio.com/).
-- Un navegador y conexión a internet para descargar las dependencias.
-
-En Windows se puede comprobar la instalación desde la terminal con:
+En Windows compruebo:
 
 ```powershell
 node --version
@@ -44,182 +72,153 @@ npm.cmd --version
 git --version
 ```
 
-## 2. Descargar e instalar el proyecto
+Los comandos usan `npm.cmd` para evitar problemas de ejecución de `npm.ps1` en PowerShell. En macOS/Linux uso `npm`.
 
-1. Abrir una terminal en la carpeta donde se quiera guardar el proyecto.
-2. Descargar el repositorio y entrar en su carpeta:
+## 2. Instalación local
 
-   ```powershell
-   git clone https://github.com/Diego-Zelada/nexo-proveedores.git
-   cd nexo-proveedores
-   ```
+Abro en VS Code la carpeta que contiene este README y `package.json`. Si la segunda etapa ya está subida a GitHub, también puedo descargarla con `git clone`.
 
-3. En VS Code, seleccionar **Archivo → Abrir carpeta** y abrir esa carpeta. Es la que contiene `package.json`.
-4. Seleccionar **Terminal → Nueva terminal**.
-5. Instalar las dependencias:
+```powershell
+npm.cmd ci
+npm.cmd run configurar:local
+```
 
-   ```powershell
-   npm.cmd install
-   ```
+El configurador solicita un usuario y una contraseña de al menos 12 caracteres. La contraseña no se muestra al escribir. Genera `.env` con el hash `scrypt` y una clave aleatoria de firma; no guarda la contraseña en texto. Conservo el archivo en mi computadora y no lo subo a GitHub. Si ya existe, el configurador se detiene para no sobrescribirlo.
 
-También se puede descargar desde **Code → Download ZIP** en GitHub, extraer el archivo y seguir desde el paso 3.
+En una primera terminal inicio Azurite, el emulador local de Azure Storage:
 
-## 3. Ejecutar la aplicación
+```powershell
+npm.cmd run emulador
+```
 
-1. En la terminal de VS Code, dentro de la carpeta del proyecto, ejecutar:
+En una segunda terminal, dentro de la misma carpeta:
 
-   ```powershell
-   npm.cmd run dev
-   ```
+```powershell
+npm.cmd run dev:completo
+```
 
-2. Abrir [http://localhost:4173/](http://localhost:4173/) en el navegador. Si Vite muestra otro puerto porque ese está ocupado, utilizar la dirección que indique la terminal.
-3. Mantener la terminal abierta mientras se trabaja. Los cambios guardados con **Ctrl + S** se reflejan en el navegador.
-4. Para detener el servidor, presionar **Ctrl + C** en la terminal.
+Abro [http://localhost:4173/](http://localhost:4173/), presiono **Documentos** e inicio sesión con el usuario y contraseña que elegí.
 
-Después de la primera instalación, para volver a ejecutarlo basta con abrir la carpeta y usar `npm.cmd run dev`. Si cambian las dependencias, se vuelve a ejecutar `npm.cmd install`.
+Mantengo ambas terminales abiertas. Para detenerlas uso **Ctrl + C** en cada una.
 
-Los comandos de este README están escritos para Windows. En macOS o Linux se utiliza `npm` en lugar de `npm.cmd`.
+### Qué hace la prueba local
 
-### Abrirlo en Visual Studio
+Azurite guarda datos de desarrollo en `.azurite/`. El comando `dev:completo` inicia Vite, la API en el puerto 3001 y un procesador local que reutiliza la misma validación de la Function. Azurite se inicia con su telemetría desactivada.
 
-También se puede abrir la carpeta desde **Archivo → Abrir → Carpeta** en Visual Studio y ejecutar los mismos comandos en su terminal. El proyecto se ejecuta con Vite y no necesita un archivo de solución `.sln`.
+El procesador local permite practicar sin una cuenta de Azure; **no es el host de Azure Functions**. En Azure se utiliza la función real de `functions/src/index.ts`, con disparador Blob. El emulador tampoco reproduce todas las funciones de versionado y recuperación; esas pruebas se hacen en Azure real.
 
-## 4. Cómo usar la aplicación
+## 3. Usar los documentos
 
-1. Presionar **Nuevo proveedor** para abrir el formulario.
-2. Completar los datos y guardar. El nombre y el NIT son obligatorios; los demás campos son opcionales.
-3. Utilizar el buscador para encontrar un proveedor por nombre, NIT o correo.
-4. Seleccionar **Todos**, **Activos** o **Inactivos** para filtrar los registros.
-5. Abrir el menú de los tres puntos de un proveedor para editar sus datos o cambiar su estado.
-6. Confirmar el cambio para activar o inactivar al proveedor.
+1. Abro **Documentos** e inicio sesión.
+2. Selecciono proveedor, tipo y archivo. Puedo usar los archivos ficticios de `pruebas/archivos/`.
+3. Presiono **Subir documento**. La respuesta inicial es `pendiente`.
+4. Espero a que cambie a `disponible`. En local tarda unos segundos; en Azure el disparador por sondeo puede tardar varios minutos cuando el servicio está inactivo.
+5. Uso **Ver** o **Descargar**. Si el enlace vence, solicito otro desde la aplicación.
+6. Uso **Nueva versión** para reemplazar el contenido del mismo documento. En Azure, **Versiones** muestra el historial generado por Blob Storage.
+7. Uso **Eliminar** y confirmo. El documento pasa a **Papelera**.
+8. En Azure, abro **Papelera → Recuperar** mientras existan versiones recuperables. La recuperación vuelve a validar el archivo.
 
-Conservé los registros mediante el cambio de estado, como pide el proyecto. No incluí una opción para eliminarlos físicamente.
+Si aparece `rechazado`, consulto el motivo. Si aparece `error`, reviso los registros; los fallos transitorios de la Function se reintentan. No puedo abrir archivos pendientes, rechazados o eliminados.
 
-### Cómo se guardan los datos
+## 4. API REST
 
-La primera vez que se abre la aplicación aparecen ocho proveedores ficticios. Los cambios se guardan en `localStorage` con la clave `nexo.proveedores.v1`.
+La documentación de campos y respuestas está en [docs/API.md](docs/API.md). Salvo inicio de sesión y comprobación de salud, todas las rutas requieren `Authorization: Bearer <token>`.
 
-Cada navegador y dirección web tiene sus propios datos. Por eso, los proveedores registrados en `localhost` no aparecen automáticamente en Azure ni en otro dispositivo. Si se borran los datos del sitio, se pierde la información guardada y se vuelven a cargar los ejemplos iniciales. Esta versión no utiliza una base de datos en un servidor ni tiene inicio de sesión.
+| Método | Ruta                                       | Operación                           |
+| ------ | ------------------------------------------ | ----------------------------------- |
+| POST   | `/api/auth/login`                          | Iniciar sesión.                     |
+| GET    | `/api/auth/me`                             | Consultar sesión y límite.          |
+| GET    | `/api/health`                              | Comprobar que la API responde.      |
+| POST   | `/api/proveedores/:proveedorId/documentos` | Subir un documento.                 |
+| GET    | `/api/documentos`                          | Consultar y filtrar mis documentos. |
+| GET    | `/api/documentos/:id`                      | Consultar un documento.             |
+| GET    | `/api/documentos/:id/estado`               | Consultar su procesamiento.         |
+| GET    | `/api/documentos/:id/enlace`               | Obtener enlace temporal.            |
+| GET    | `/api/documentos/:id/versiones`            | Listar versiones de Azure.          |
+| PUT    | `/api/documentos/:id/contenido`            | Cargar nueva versión.               |
+| DELETE | `/api/documentos/:id`                      | Eliminar.                           |
+| POST   | `/api/documentos/:id/restaurar`            | Solicitar recuperación.             |
 
-## 5. Organización del código
+## 5. Seguridad
 
-Separé el proyecto en componentes para que cada parte tenga una función definida:
+- La cuenta y el contenedor de documentos rechazan el acceso público.
+- La API valida el JWT y consulta únicamente los documentos del usuario autenticado. Conocer un identificador no permite acceder a documentos de otro usuario.
+- Las contraseñas se guardan con hash `scrypt`, sal aleatoria y comparación segura; el JWT vence después de una hora. No hay registro público ni recuperación automática de contraseñas en esta entrega.
+- Las cargas se revisan en la API y en la Function: extensión permitida, MIME, firma básica del archivo, archivo no vacío y tamaño máximo. Es una validación de formato, no un antivirus ni una garantía de que un PDF no contenga contenido activo.
+- Los enlaces SAS son HTTPS en Azure, de solo lectura, duran 60 segundos y quedan vinculados a la versión validada. Quien posea un enlace puede usarlo mientras sea válido: no lo publico ni lo envío en capturas. Cerrar sesión o eliminar un documento no revoca inmediatamente un SAS que ya fue emitido.
+- La API y la Function usan identidades administradas para los documentos. La cuenta interna del host de Functions usa su conexión privada en la configuración del servidor, separada de la cuenta de documentos.
+- Los secretos no usan prefijo `VITE_`; `.env`, `.azure/` y la configuración local de Functions están excluidos de Git. `VITE_API_URL` es solo una dirección pública.
+- Se limitan los intentos de inicio de sesión y las solicitudes. Los errores incluyen una referencia de seguimiento y no devuelven claves ni trazas internas.
 
-| Archivo o carpeta | Función |
-| --- | --- |
-| `src/App.tsx` | Organiza la pantalla principal y conecta sus componentes. |
-| `src/components/proveedores/` | Contiene el formulario, tabla, tarjetas, filtros, resumen y confirmaciones. |
-| `src/components/layout/` | Contiene la barra lateral, el encabezado y la guía rápida. |
-| `src/components/ui/` | Contiene los componentes reutilizables de interfaz. |
-| `src/hooks/useProveedores.ts` | Maneja la carga, registro, edición y cambio de estado de los proveedores. |
-| `src/lib/proveedores.ts` | Contiene las validaciones, la búsqueda y los filtros. |
-| `src/lib/almacenamiento.ts` | Lee y guarda los registros en el navegador. |
-| `src/types/proveedor.ts` | Define los campos y tipos de un proveedor. |
-| `src/data/proveedores.ts` | Contiene los proveedores ficticios iniciales. |
-| `src/index.css` | Define los estilos generales. |
-| `.github/workflows/` | Contiene los procesos de verificación y publicación automática. |
-| `public/staticwebapp.config.json` | Configura la navegación de la aplicación en Azure. |
+## 6. Azure y GitHub Actions
 
-## 6. Pruebas y compilación
+Sigo [AZURE_PASO_A_PASO.md](docs/AZURE_PASO_A_PASO.md), que explica suscripción, región, credenciales locales, infraestructura, GitHub y comprobaciones.
 
-Para ejecutar las pruebas automatizadas:
+`infra/main.bicep` configura:
+
+- Cuenta de documentos `StorageV2`, contenedor privado `proveedores-documentos`, versionado y eliminación temporal de blobs y contenedores durante siete días.
+- Tablas de documentos y eventos.
+- App Service Linux con Node 22; el plan por defecto es **F1 Free**.
+- Azure Functions v4 en Windows Consumption, Node 22, con su cuenta interna de almacenamiento.
+- Identidades administradas, roles de datos e identidad federada de GitHub para `main`.
+
+F1 tiene cuotas y disponibilidad limitada; Storage, Functions y las versiones almacenadas pueden generar consumo. Reviso costos en mi suscripción antes de crearlos. El script no cambia automáticamente a B1 si falla F1.
+
+Si esos planes están bloqueados, puedo elegir explícitamente [un solo Linux B1 compartido por la API y la Function](docs/ALTERNATIVA_B1.md), de pago. Primero valido región, cuota y costo. El ZIP de entrega incluye paquetes compilados para usar `infra/Publicar-Azure.ps1`; la automatización de GitHub sigue disponible en el mismo repositorio.
+
+| Workflow                                        | Función                                                                                                |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `ci.yml` — Verificar proyecto                   | Pruebas unitarias, integración local y compilación completa.                                           |
+| `azure-documentos.yml` — Publicar etapa 2       | Publica API con frontend en App Service y la Function. Usa OIDC.                                       |
+| `azure-static-web-apps.yml` — Publicar en Azure | Conserva el despliegue anterior. Puede apuntar a la nueva API con la variable pública `AZURE_API_URL`. |
+
+La publicación de la etapa 2 se omite mientras no se configuren los nombres de App Service y Functions en GitHub. No elimina ni modifica automáticamente el recurso de Static Web Apps anterior.
+
+## 7. Verificación
 
 ```powershell
 npm.cmd test
+npm.cmd run test:integracion
+npm.cmd run build:todo
 ```
 
-Estas pruebas revisan la búsqueda, los filtros, las validaciones y el guardado de datos.
+`test:integracion` inicia un Azurite temporal con telemetría desactivada y lo cierra al terminar; no necesita credenciales de Azure. Si tengo el emulador de desarrollo abierto, primero lo detengo para dejar libres los puertos 10000–10002.
 
-Para comprobar los tipos de TypeScript y generar la versión que se publica:
+Las pruebas cubren la lógica original, validación de archivos y sesiones, acceso sin autorización, carga real en el emulador, estados, SAS de lectura y vencimiento, aislamiento entre usuarios, reemplazo, eliminación y eventos repetidos. No sustituyen la prueba del disparador, las identidades, el versionado y la recuperación en Azure real.
+
+Para generar los paquetes que usa GitHub Actions:
 
 ```powershell
-npm.cmd run build
+npm.cmd run paquete:api
+npm.cmd run paquete:functions
 ```
 
-El resultado se guarda en `dist/`. Para revisar esa versión en la computadora:
+Se generan en `.paquetes/`, con dependencias de producción y sin `.env`. El paquete de API incluye la web compilada.
 
-```powershell
-npm.cmd run preview
-```
+## 8. Organización
 
-Después se abre la dirección que muestre la terminal. Si el servidor de desarrollo sigue abierto, primero se detiene con **Ctrl + C**.
+| Carpeta          | Contenido                                                    |
+| ---------------- | ------------------------------------------------------------ |
+| `src/`           | Aplicación React y panel de documentos.                      |
+| `api/src/`       | API Express, autenticación y configuración.                  |
+| `functions/src/` | Azure Function con disparador Blob.                          |
+| `shared/`        | Modelos, validación y acceso a Blob/Table compartidos.       |
+| `scripts/`       | Configuración local, procesador de desarrollo y empaquetado. |
+| `infra/`         | Bicep y script PowerShell de creación de recursos.           |
+| `pruebas/`       | Integración con Azurite y archivos ficticios.                |
+| `docs/`          | Arquitectura, API, despliegue y guion de entrega.            |
 
-El 23 de octubre de 2026 comprobé que la publicación en GitHub Actions terminó correctamente y que la aplicación cargó desde Azure. También registré un proveedor de prueba y confirmé que seguía apareciendo después de recargar la página.
+## 9. Entrega y demostración
 
-## 7. Cómo subí el código a GitHub
+Uso [PRUEBAS_Y_ENTREGA.md](docs/PRUEBAS_Y_ENTREGA.md) para relacionar cada criterio con su evidencia. Debo presentar el enlace de la segunda etapa funcionando, el repositorio actualizado, capturas reales de Azure, el diagrama, este README y una demostración en vivo.
 
-Primero creé un repositorio vacío en GitHub llamado `nexo-proveedores`. Después, desde la carpeta del proyecto en VS Code, inicialicé Git, guardé los archivos y conecté el repositorio remoto:
-
-```powershell
-git init
-git add .
-git commit -m "Crear administrador de proveedores"
-git branch -M main
-git remote add origin https://github.com/Diego-Zelada/nexo-proveedores.git
-git push -u origin main
-```
-
-Estos comandos corresponden a la subida inicial. Al descargar el proyecto con `git clone`, la conexión con GitHub ya queda configurada. El archivo `.gitignore` excluye carpetas como `node_modules` y `dist` para mantener el repositorio con el código fuente y su configuración.
-
-## 8. Cómo hice el despliegue en Azure
-
-### Crear el recurso
-
-1. Ingresé al [portal de Azure](https://portal.azure.com/) y abrí **Static Web Apps**.
-2. Seleccioné **Create** y elegí mi suscripción.
-3. Creé el grupo de recursos `rg-nexo-proveedores`.
-4. Escribí `Nexo-Proveedores` como nombre de la aplicación.
-5. Seleccioné el plan **Free**.
-6. En **Source**, seleccioné **Other**, porque el repositorio ya incluía el proceso de publicación.
-7. En **Deployment configuration**, dejé seleccionada la opción **Deployment token**.
-8. En **Advanced**, utilicé **Central US** como región.
-9. Abrí **Review + create**, comprobé que el plan fuera Free y presioné **Create**.
-10. Cuando terminó la creación, seleccioné **Go to resource**.
-
-Al principio intenté utilizar Azure for Students, pero esa suscripción tenía una restricción de regiones que no coincidía con las disponibles para Static Web Apps. Finalmente creé el recurso con mi cuenta personal, en la suscripción `Azure subscription 1`, donde la creación en Central US sí terminó correctamente.
-
-### Conectar Azure con GitHub
-
-1. En el recurso de Azure abrí **Manage deployment token** y copié el token.
-2. En GitHub entré al repositorio y abrí **Settings → Secrets and variables → Actions**.
-3. Seleccioné **New repository secret**.
-4. Utilicé exactamente este nombre:
-
-   ```text
-   AZURE_STATIC_WEB_APPS_API_TOKEN
-   ```
-
-5. Pegué el token de Azure en el campo **Secret** y presioné **Add secret**. El token se guarda como secreto y no se incluye en el código ni en este documento.
-6. Abrí **Actions → Publicar en Azure → Run workflow**.
-7. Seleccioné la rama `main` y ejecuté el proceso.
-8. Esperé a que terminara con la marca verde y abrí la dirección pública de Azure para comprobar el resultado.
-
-El archivo `.github/workflows/azure-static-web-apps.yml` instala las dependencias con `npm ci`, ejecuta las pruebas, compila el proyecto y publica la carpeta `dist` en Azure. Utiliza Node.js 22 y el secreto configurado en GitHub. Como la compilación ya se hace en GitHub Actions, el paso de Azure utiliza `skip_app_build: true` y `app_location: dist`.
-
-También incluí el proceso **Verificar proyecto**, que ejecuta las pruebas y la compilación. Este proceso comprueba el código; **Publicar en Azure** es el que realiza el despliegue.
-
-## 9. Cómo subir cambios después
-
-Después de modificar y guardar los archivos, reviso los cambios en la terminal:
-
-```powershell
-git status
-```
-
-Luego los guardo en Git y los envío a GitHub:
-
-```powershell
-git add .
-git commit -m "Actualizar proyecto"
-git push
-```
-
-Cada cambio enviado a `main` inicia automáticamente una nueva publicación. Se puede revisar su resultado en **Actions → Publicar en Azure** y, cuando termine, recargar la página pública para ver la actualización.
+No incluyo contraseñas ni enlaces SAS vigentes en el README, en el repositorio o en las capturas.
 
 ## Referencias
 
-- [Crear una aplicación en Azure Static Web Apps](https://learn.microsoft.com/en-us/azure/static-web-apps/get-started-portal)
-- [Token de implementación de Azure](https://learn.microsoft.com/en-us/azure/static-web-apps/deployment-token-management)
-- [Configuración de compilación en Azure](https://learn.microsoft.com/en-us/azure/static-web-apps/build-configuration)
-
-La atribución y las licencias de los componentes de terceros están en `THIRD_PARTY_NOTICES.md`.
+- [Disparador Blob de Azure Functions](https://learn.microsoft.com/azure/azure-functions/functions-bindings-storage-blob-trigger).
+- [SAS de delegación de usuario con JavaScript](https://learn.microsoft.com/azure/storage/blobs/storage-blob-create-user-delegation-sas-javascript).
+- [Versionado de blobs](https://learn.microsoft.com/azure/storage/blobs/versioning-overview).
+- [Eliminación temporal y recuperación](https://learn.microsoft.com/azure/storage/blobs/soft-delete-blob-overview).
+- [Acción oficial de despliegue de Azure Functions](https://github.com/Azure/functions-action).
+- [Acción oficial de inicio de sesión en Azure](https://github.com/Azure/login).

@@ -1,0 +1,20 @@
+{
+  "name": "@nexo/functions",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/functions/src/index.js",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "func start"
+  },
+  "dependencies": {
+    "@azure/storage-blob": "12.34.0",
+    "@azure/data-tables": "13.3.2",
+    "@azure/identity": "4.14.1",
+    "@azure/functions": "4.17.0"
+  }
+}

@@ -1,4 +1,4 @@
-import { Ellipsis, Pencil, Power, PowerOff } from 'lucide-react'
+import { Ellipsis, FolderOpen, Pencil, Power, PowerOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -13,9 +13,15 @@ export type AccionesProps = {
   proveedor: Proveedor
   onEditar: (proveedor: Proveedor) => void
   onCambiarEstado: (proveedor: Proveedor) => void
+  onDocumentos: (proveedor: Proveedor) => void
 }
 
-export function AccionesProveedor({ proveedor, onEditar, onCambiarEstado }: AccionesProps) {
+export function AccionesProveedor({
+  proveedor,
+  onEditar,
+  onCambiarEstado,
+  onDocumentos,
+}: AccionesProps) {
   const activo = proveedor.estado === 'activo'
   return (
     <DropdownMenu>
@@ -30,6 +36,10 @@ export function AccionesProveedor({ proveedor, onEditar, onCambiarEstado }: Acci
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem onSelect={() => onDocumentos(proveedor)}>
+          <FolderOpen className="size-4" />
+          Ver documentos
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => onEditar(proveedor)}>
           <Pencil className="size-4" />
           Editar proveedor

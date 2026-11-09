@@ -1,0 +1,11 @@
+flowchart TB
+    browser["Navegador · React"] -->|"HTTPS + JWT"| app["App Service · Node/TypeScript"]
+    browser --- local["Proveedores · localStorage"]
+    app -->|"Identidad administrada"| blobs["Blob privado · versiones y soft delete"]
+    app --> tables["Table Storage · documentos y eventos"]
+    blobs -->|"Disparador Blob"| function["Azure Function · validación"]
+    function --> tables
+    app -->|"SAS de lectura · 60 segundos"| browser
+    browser -->|"Descarga con SAS"| blobs
+    github["GitHub Actions · OIDC"] -->|"Publicar web y API"| app
+    github -->|"Publicar función"| function

@@ -50,6 +50,10 @@ function Ayuda({ compacta = false }: { compacta?: boolean }) {
             Abre el menú de un proveedor para editarlo, inactivarlo o volverlo a activar. Los
             registros se conservan.
           </li>
+          <li>
+            En Documentos, inicia sesión para subir, consultar y gestionar los archivos privados de
+            tus proveedores.
+          </li>
         </ol>
         <div className="rounded-lg bg-blue-50 p-4 text-sm leading-relaxed text-blue-900">
           <strong>Sobre tus datos</strong>
@@ -57,6 +61,10 @@ function Ayuda({ compacta = false }: { compacta?: boolean }) {
             Se guardan en este navegador y permanecen al actualizar la página. No se comparten entre
             dispositivos. Si borras los datos del sitio, perderás los registros guardados. El
             directorio inicial contiene ejemplos ficticios.
+          </p>
+          <p className="mt-2">
+            Los documentos se guardan en Azure y requieren una sesión autorizada. La sesión de
+            documentos se cierra al recargar la página.
           </p>
         </div>
       </DialogContent>

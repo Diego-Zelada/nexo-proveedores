@@ -9,3 +9,7 @@ dist/
 .vscode/
 coverage/
 .azure/
+.azurite/
+.paquetes/
+functions/local.settings.json
+*.zip

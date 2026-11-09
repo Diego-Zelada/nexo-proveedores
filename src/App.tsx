@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { AlertCircle, Building2, HardDrive, Plus, SearchX } from 'lucide-react'
+import { AlertCircle, Building2, FolderOpen, HardDrive, Plus, SearchX } from 'lucide-react'
 import { toast, Toaster } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { AppLayout } from '@/components/layout/AppLayout'
@@ -10,6 +10,7 @@ import { TarjetasProveedores } from '@/components/proveedores/TarjetasProveedore
 import { Paginacion } from '@/components/proveedores/Paginacion'
 import { FormularioProveedor } from '@/components/proveedores/FormularioProveedor'
 import { ConfirmarEstado } from '@/components/proveedores/ConfirmarEstado'
+import { PanelDocumentos } from '@/components/proveedores/PanelDocumentos'
 import { useProveedores } from '@/hooks/useProveedores'
 import { filtrarProveedores } from '@/lib/proveedores'
 import type { DatosProveedor, FiltroEstado, Proveedor } from '@/types/proveedor'
@@ -25,6 +26,9 @@ export default function App() {
   // undefined: cerrado; null: registro nuevo; Proveedor: edición.
   const [formulario, setFormulario] = useState<Proveedor | null | undefined>(undefined)
   const [cambioPendiente, setCambioPendiente] = useState<Proveedor | null>(null)
+  const [documentosProveedor, setDocumentosProveedor] = useState<Proveedor | null | undefined>(
+    undefined,
+  )
   const filtrados = useMemo(
     () => filtrarProveedores(proveedores, busqueda, filtro),
     [proveedores, busqueda, filtro],
@@ -78,14 +82,19 @@ export default function App() {
             Administra tus contactos y mantén cada detalle en orden.
           </p>
         </div>
-        <Button
-          className="h-11 w-full gap-2 px-5 shadow-sm shadow-blue-500/10 sm:w-auto"
-          onClick={() => setFormulario(null)}
-          disabled={lecturaBloqueada}
-        >
-          <Plus className="size-4" />
-          Nuevo proveedor
-        </Button>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <Button variant="outline" className="h-11" onClick={() => setDocumentosProveedor(null)}>
+            <FolderOpen className="size-4" /> Documentos
+          </Button>
+          <Button
+            className="h-11 w-full gap-2 px-5 shadow-sm shadow-blue-500/10 sm:w-auto"
+            onClick={() => setFormulario(null)}
+            disabled={lecturaBloqueada}
+          >
+            <Plus className="size-4" />
+            Nuevo proveedor
+          </Button>
+        </div>
       </div>
       {error && (
         <div
@@ -138,11 +147,13 @@ export default function App() {
               proveedores={visibles}
               onEditar={setFormulario}
               onCambiarEstado={setCambioPendiente}
+              onDocumentos={setDocumentosProveedor}
             />
             <TarjetasProveedores
               proveedores={visibles}
               onEditar={setFormulario}
               onCambiarEstado={setCambioPendiente}
+              onDocumentos={setDocumentosProveedor}
             />
           </>
         ) : (
@@ -206,6 +217,13 @@ export default function App() {
         />
       )}
       <Toaster richColors position="bottom-right" closeButton />
+      {documentosProveedor !== undefined && (
+        <PanelDocumentos
+          proveedores={proveedores}
+          proveedor={documentosProveedor}
+          onCerrar={() => setDocumentosProveedor(undefined)}
+        />
+      )}
     </AppLayout>
   )
 }

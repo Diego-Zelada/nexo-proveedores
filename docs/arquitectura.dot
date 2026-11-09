@@ -1,0 +1,24 @@
+digraph Nexo {
+  graph [rankdir=TB, bgcolor="#ffffff", pad=0.4, nodesep=0.55, ranksep=0.7, fontname="DejaVu Sans", label="NEXO / DOCUMENTOS DE PROVEEDORES", labelloc=t, fontsize=20, fontcolor="#16283f"];
+  node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=12, margin="0.22,0.16", color="#d4deec", fillcolor="#f3f6fb", fontcolor="#16283f"];
+  edge [fontname="DejaVu Sans", fontsize=10, color="#52739d", fontcolor="#46536a", arrowsize=0.7];
+  browser [label="Navegador\nInterfaz React + TypeScript", fillcolor="#e9f0ff"];
+  local [label="Directorio de proveedores\nlocalStorage del navegador"];
+  app [label="Azure App Service\nFrontend + API REST Node/TypeScript\nSesión JWT y autorización", fillcolor="#dceaff", color="#6290cf"];
+  blob [label="Azure Blob Storage\nproveedores-documentos · PRIVADO\nVersionado + eliminación temporal", fillcolor="#e8f5ee", color="#81b59a"];
+  tables [label="Azure Table Storage\nDocumentosProveedores\nEventosDocumentos"];
+  fn [label="Azure Functions\nDisparador Blob · Validación\nTipo, tamaño y estado", fillcolor="#fff3df", color="#d4ae63"];
+  github [label="GitHub Actions\nPruebas y publicación\nIdentidad federada OIDC"];
+  browser -> app [label="HTTPS + JWT"];
+  browser -> local [label="Datos locales", dir=none, style=dashed];
+  app -> browser [label="SAS: lectura de versión validada\n60 segundos"];
+  browser -> blob [label="Descarga con SAS", style=dashed, constraint=false];
+  app -> blob [label="Carga / versiones / recuperación\nIdentidad administrada"];
+  app -> tables [label="Consulta y registra"];
+  blob -> fn [label="Carga detectada\nSondeo del disparador"];
+  fn -> tables [label="Actualiza estado\ny registra resultado", constraint=false];
+  github -> app [label="Publica web y API", style=dashed];
+  github -> fn [label="Publica función", style=dashed, constraint=false];
+  {rank=same; browser; github;}
+  {rank=same; blob; tables;}
+}

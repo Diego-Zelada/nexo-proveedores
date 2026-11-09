@@ -11,7 +11,7 @@ import { EstadoBadge } from './EstadoBadge'
 import { ProveedorAvatar } from './ProveedorAvatar'
 import type { Proveedor } from '@/types/proveedor'
 
-export type ListadoProps = Pick<AccionesProps, 'onEditar' | 'onCambiarEstado'> & {
+export type ListadoProps = Pick<AccionesProps, 'onEditar' | 'onCambiarEstado' | 'onDocumentos'> & {
   proveedores: Proveedor[]
 }
 
